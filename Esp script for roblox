@@ -1,0 +1,62 @@
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+
+local highlightDistance = 20000 -- Change this to your desired detection range
+local highlightColor = Color3.fromRGB(0, 255, 0) -- Change this to your preferred highlight color
+
+-- This function checks if a player is within range and line of sight of another player
+local function isPlayerInLineOfSight(player1, player2)
+  local rootPart1 = player1.Character:FindFirstChild("HumanoidRootPart")
+  local rootPart2 = player2.Character:FindFirstChild("HumanoidRootPart")
+  
+  if not rootPart1 or not rootPart2 then
+    return false
+  end
+  
+  local direction = rootPart2.Position - rootPart1.Position
+  local raycastResult = workspace:Raycast(rootPart1.Position, direction, highlightDistance)
+  
+  -- Check if the raycast hit the target player or something in between
+  return raycastResult and raycastResult.Instance == rootPart2
+end
+
+-- This loop runs every second to update player highlights
+RunService.Heartbeat:Connect(function()
+  for _, player in pairs(Players:GetPlayers()) do
+    local highlightObject = player.Character:FindFirstChild("Highlight")
+    
+    -- Clear any existing highlights
+    if highlightObject then
+      highlightObject:Destroy()
+    end
+    
+    -- Find nearby players
+    local nearbyPlayers = {}
+    for _, otherPlayer in pairs(Players:GetPlayers()) do
+      if otherPlayer ~= player and isPlayerInLineOfSight(player, otherPlayer) then
+        table.insert(nearbyPlayers, otherPlayer)
+      end
+    end
+    
+    -- Create and position highlights for nearby players
+    if #nearbyPlayers > 0 then
+      local highlight = Instance.new("Highlight", player.Character)
+      highlight.Name = "Highlight"
+      highlight.FillColor = highlightColor
+      highlight.FillTransparency = 0.5
+      highlight.OutlineColor = Color3.black
+      highlight.OutlineTransparency = 0.2
+      
+      -- Adjust these values to customize the highlight size and position
+      highlight.Size = Vector3.new(2, 2, 2)
+      highlight.Offset = Vector3.new(0, 1, 0) -- Adjust to position above player's head
+      
+      for _, otherPlayer in pairs(nearbyPlayers) do
+        local targetHead = otherPlayer.Character:FindFirstChild("Head")
+        if targetHead then
+          highlight.AttachmentPoint = targetHead.AttachmentPoint
+        end
+      end
+    end
+  end
+end)
